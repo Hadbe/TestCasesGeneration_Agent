@@ -1,3 +1,4 @@
+# Runs daily at 06:00 Jordan time (03:00 UTC) to keep the Streamlit demo awake.
 name: Keep demo awake
 
 on:
