@@ -1,0 +1,13 @@
+name: Keep demo awake
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the Streamlit app
+        run: curl -fsS --max-time 30 https://tc-generation-agent.streamlit.app/ -o /dev/null

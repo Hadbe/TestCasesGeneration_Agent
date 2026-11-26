@@ -1,0 +1,8 @@
+User Story:
+As an authenticated user, I want to change my email address and verify it with a one time code so that my account remains secure.
+
+Acceptance Criteria:
+1. The user can enter a new email address.
+2. The system validates that the email format is valid.
+3. The system sends a verification code to the new email address.
+4. The email address is updated only after the correct code is entered.

@@ -1,0 +1,1071 @@
+## Executive Summary
+
+This QA package covers manual testing for changing an authenticated user’s email address using a one-time verification code. The main quality focus is ensuring that the email is only updated after a valid new email address is submitted and the correct verification code is entered.
+
+## Scope
+
+In scope:
+- Authenticated user enters a new email address.
+- Email format validation.
+- Verification code is sent to the new email address.
+- Email is updated only after the correct verification code is entered.
+- Invalid, empty, malformed, boundary, duplicate, retry, navigation, refresh, session-expiry, and authorization checks where relevant.
+- State consistency before and after verification.
+
+Out of scope unless clarified:
+- Email deliverability infrastructure details.
+- Verification code expiration rules.
+- Resend-code functionality.
+- Rate limiting and lockout rules.
+- Audit logging.
+- Notification to old email address.
+- Exact UI text, field labels, and error messages.
+
+## Risks
+
+- Email may be updated before verification, weakening account security.
+- Invalid or malformed email addresses may pass validation.
+- Verification code may be sent to the wrong address.
+- Incorrect code entry may still update the email.
+- Duplicate submissions may generate inconsistent state or multiple codes.
+- Refresh, navigation, or session expiry may leave the account in an unclear pending state.
+- Unauthorized users may access or abuse the email-change flow.
+- Lack of code expiry, retry, and resend rules may cause inconsistent implementation and testing ambiguity.
+
+## Clarifications Needed
+
+1. What exact email validation rules should be used?
+2. Are internationalized email addresses supported?
+3. Are plus-addressing, subdomains, uppercase characters, and long TLDs allowed?
+4. What are the minimum and maximum allowed email lengths?
+5. Can the new email be the same as the current email?
+6. Can the new email already belong to another account?
+7. How long is the one-time code valid?
+8. What is the required code format and length?
+9. What happens after multiple incorrect code attempts?
+10. Is there a resend verification code option?
+11. If multiple codes are requested, are previous codes invalidated?
+12. What should happen if the user refreshes or navigates away during verification?
+13. What should happen if the session expires during the flow?
+14. Should the old email receive a notification?
+15. Should the new email receive confirmation after successful update?
+16. Are there rate limits for email-change requests or code submissions?
+17. Should audit logs be created for email-change attempts and successful updates?
+18. What exact error messages should be displayed?
+19. Should email comparison be case-sensitive or normalized?
+20. What should happen if sending the verification code fails?
+
+## Test Cases
+
+### Positive Test Cases
+
+1.  
+ID: TC-POS-001  
+Title: Change email with valid new email and correct verification code  
+Priority: High  
+Type: Positive  
+Preconditions: User is authenticated and has access to the email-change flow.  
+Steps:  
+- Enter a valid new email address.  
+- Submit the email-change request.  
+- Retrieve the verification code from the new email address.  
+- Enter the correct verification code.  
+- Submit verification.  
+Expected Result: Verification code is sent to the new email address, and the account email is updated only after the correct code is submitted.  
+Severity if Failed: Critical  
+Notes: Covers primary acceptance criteria.
+
+2.  
+ID: TC-POS-002  
+Title: Verification code is sent to the entered new email address  
+Priority: High  
+Type: Positive  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter a valid new email address.  
+- Submit the email-change request.  
+- Check the inbox for the new email address.  
+Expected Result: Verification code is delivered to the new email address.  
+Severity if Failed: High  
+Notes: Delivery timing is not specified.
+
+3.  
+ID: TC-POS-003  
+Title: Email remains unchanged after valid email submission but before code verification  
+Priority: High  
+Type: Positive  
+Preconditions: User is authenticated and has an existing account email.  
+Steps:  
+- Enter a valid new email address.  
+- Submit the email-change request.  
+- Do not enter the verification code.  
+- Check the current account email value.  
+Expected Result: Account email remains unchanged until the correct verification code is entered.  
+Severity if Failed: Critical  
+Notes: Validates secure state transition.
+
+4.  
+ID: TC-POS-004  
+Title: Email format accepted for common valid email structure  
+Priority: Medium  
+Type: Positive  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter an email address using a common valid structure, such as local-part, @ symbol, domain, and TLD.  
+- Submit the email-change request.  
+Expected Result: System accepts the valid email format and proceeds to send a verification code.  
+Severity if Failed: High  
+Notes: Exact validation rules need clarification.
+
+5.  
+ID: TC-POS-005  
+Title: Correct verification code updates only to the requested new email  
+Priority: High  
+Type: Positive  
+Preconditions: User is authenticated and has requested an email change.  
+Steps:  
+- Submit a valid new email address.  
+- Receive the verification code.  
+- Enter the correct verification code.  
+- Confirm the updated account email.  
+Expected Result: Account email is updated to the same new email address used for the verification request.  
+Severity if Failed: Critical  
+Notes: Prevents mismatch between requested and updated email.
+
+### Negative Test Cases
+
+1.  
+ID: TC-NEG-001  
+Title: Empty email address is rejected  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated.  
+Steps:  
+- Leave the new email field empty.  
+- Submit the email-change request.  
+Expected Result: System rejects the request, does not send a verification code, and does not update the account email.  
+Severity if Failed: High  
+Notes: Error message is not specified.
+
+2.  
+ID: TC-NEG-002  
+Title: Malformed email without @ symbol is rejected  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter a malformed email address without an @ symbol.  
+- Submit the request.  
+Expected Result: System rejects the email format, does not send a verification code, and does not update the account email.  
+Severity if Failed: High  
+Notes: Covers basic malformed input.
+
+3.  
+ID: TC-NEG-003  
+Title: Malformed email without domain is rejected  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter an email address missing the domain portion.  
+- Submit the request.  
+Expected Result: System rejects the email format, does not send a verification code, and does not update the account email.  
+Severity if Failed: High  
+Notes: Exact validation rules need clarification.
+
+4.  
+ID: TC-NEG-004  
+Title: Malformed email without local part is rejected  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter an email address missing the local part before @.  
+- Submit the request.  
+Expected Result: System rejects the email format, does not send a verification code, and does not update the account email.  
+Severity if Failed: High  
+Notes: Exact validation rules need clarification.
+
+5.  
+ID: TC-NEG-005  
+Title: Incorrect verification code does not update email  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated and has requested an email change with a valid new email.  
+Steps:  
+- Enter an incorrect verification code.  
+- Submit verification.  
+- Check the account email.  
+Expected Result: System rejects the incorrect code and keeps the original account email unchanged.  
+Severity if Failed: Critical  
+Notes: Retry behavior needs clarification.
+
+6.  
+ID: TC-NEG-006  
+Title: Empty verification code is rejected  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated and has requested an email change.  
+Steps:  
+- Leave the verification code field empty.  
+- Submit verification.  
+Expected Result: System rejects the empty code and does not update the account email.  
+Severity if Failed: High  
+Notes: Code format is not specified.
+
+7.  
+ID: TC-NEG-007  
+Title: Malformed verification code is rejected  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated and has requested an email change.  
+Steps:  
+- Enter a verification code that does not match the required code format.  
+- Submit verification.  
+Expected Result: System rejects the malformed code and does not update the account email.  
+Severity if Failed: High  
+Notes: Required code format needs clarification.
+
+8.  
+ID: TC-NEG-008  
+Title: Duplicate email-change submission does not update email prematurely  
+Priority: Medium  
+Type: Negative  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter a valid new email address.  
+- Submit the request multiple times quickly.  
+- Do not enter any verification code.  
+- Check account email.  
+Expected Result: Account email remains unchanged until correct verification code entry.  
+Severity if Failed: High  
+Notes: Expected code-generation behavior for duplicates needs clarification.
+
+9.  
+ID: TC-NEG-009  
+Title: Verification code sending failure does not update account email  
+Priority: High  
+Type: Negative  
+Preconditions: User is authenticated and verification email sending can be simulated as failed.  
+Steps:  
+- Enter a valid new email address.  
+- Submit the request while code delivery fails.  
+- Check account email.  
+Expected Result: Account email is not updated if the verification code is not successfully sent.  
+Severity if Failed: Critical  
+Notes: Failure handling needs clarification.
+
+### Boundary Test Cases
+
+1.  
+ID: TC-BND-001  
+Title: Minimum valid email length is handled according to validation rules  
+Priority: Medium  
+Type: Boundary  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter an email address at the minimum valid length allowed by the system.  
+- Submit the request.  
+Expected Result: System handles the boundary value according to defined email validation rules and does not update email before verification.  
+Severity if Failed: Medium  
+Notes: Minimum length rule needs clarification.
+
+2.  
+ID: TC-BND-002  
+Title: Maximum valid email length is handled according to validation rules  
+Priority: Medium  
+Type: Boundary  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter an email address at the maximum valid length allowed by the system.  
+- Submit the request.  
+Expected Result: System handles the boundary value according to defined email validation rules and does not update email before verification.  
+Severity if Failed: Medium  
+Notes: Maximum length rule needs clarification.
+
+3.  
+ID: TC-BND-003  
+Title: Email exceeding maximum allowed length is rejected  
+Priority: Medium  
+Type: Boundary  
+Preconditions: User is authenticated.  
+Steps:  
+- Enter an email address longer than the maximum allowed length.  
+- Submit the request.  
+Expected Result: System rejects the email, does not send a verification code, and does not update the account email.  
+Severity if Failed: Medium  
+Notes: Maximum length rule needs clarification.
+
+4.  
+ID: TC-BND-004  
+Title: Verification code length boundary is handled according to code rules  
+Priority: Medium  
+Type: Boundary  
+Preconditions: User is authenticated and has requested an email change.  
+Steps:  
+- Enter a code shorter than the required length.  
+- Submit verification.  
+- Enter a code longer than the required length.  
+- Submit verification.  
+Expected Result: System rejects codes that do not match the required code length and does not update the account email.  
+Severity if Failed: High  
+Notes: Code length needs clarification.
+
+5.  
+ID: TC-BND-005  
+Title: Verification code retry limit boundary is handled consistently  
+Priority: Medium  
+Type: Boundary  
+Preconditions: User is authenticated and has requested an email change.  
+Steps:  
+- Enter incorrect verification codes up to the configured retry limit.  
+- Attempt one additional incorrect submission.  
+Expected Result: System behaves according to the configured retry-limit rules and does not update the account email without the correct code.  
+Severity if Failed: High  
+Notes: Retry limit needs clarification.
+
+### Edge Test Cases
+
+1.  
+ID: TC-EDGE-001  
+Title: Refresh page after email submission before verification  
+Priority: Medium  
+Type: Edge  
+Preconditions: User is authenticated and has submitted a valid new email address.  
+Steps:  
+- Refresh the page before entering the verification code.  
+- Continue or revisit the verification flow as supported.  
+- Check the account email.  
+Expected Result: Account email remains unchanged until the correct verification code is entered.  
+Severity if Failed: High  
+Notes: Expected pending-state behavior after refresh needs clarification.
+
+2.  
+ID: TC-EDGE-002  
+Title: Navigate away after email submission before verification  
+Priority: Medium  
+Type: Edge  
+Preconditions: User is authenticated and has submitted a valid new email address.  
+Steps:  
+- Navigate away from the verification step before entering the code.  
+- Return to the email-change flow.  
+- Check account email.  
+Expected Result: Account email remains unchanged until the correct verification code is entered.  
+Severity if Failed: High  
+Notes: Expected pending-state behavior after navigation needs clarification.
+
+3.  
+ID: TC-EDGE-003  
+Title: Session expires before verification code is submitted  
+Priority: High  
+Type: Edge  
+Preconditions: User is authenticated and has submitted a valid new email address.  
+Steps:  
+- Allow or simulate session expiry before entering the verification code.  
+- Attempt to submit the code.  
+- Check account email.  
+Expected Result: System does not update the email unless the user is authenticated and the correct code is accepted according to session rules.  
+Severity if Failed: Critical  
+Notes: Session-expiry behavior needs clarification.
+
+4.  
+ID: TC-EDGE-004  
+Title: Retry with correct code after an incorrect code attempt  
+Priority: High  
+Type: Edge  
+Preconditions: User is authenticated and has requested an email change.  
+Steps:  
+- Enter an incorrect verification code.  
+- Submit verification.  
+- Enter the correct verification code.  
+- Submit verification.  
+Expected Result: Email remains unchanged after the incorrect code; subsequent behavior follows retry rules, and email updates only if the correct code is accepted.  
+Severity if Failed: High  
+Notes: Retry rules need clarification.
+
+5.  
+ID: TC-EDGE-005  
+Title: Submit two different new email addresses before verification  
+Priority: High  
+Type: Edge  
+Preconditions: User is authenticated.  
+Steps:  
+- Submit a valid first new email address.  
+- Before verifying, submit a different valid new email address.  
+- Use the verification code from the first email, if available.  
+- Check account email.  
+Expected Result: Email is not updated unless the correct code for the active pending email-change request is entered.  
+Severity if Failed: Critical  
+Notes: Multiple pending-request behavior needs clarification.
+
+6.  
+ID: TC-EDGE-006  
+Title: Duplicate verification-code submission after successful update  
+Priority: Medium  
+Type: Edge  
+Preconditions: User is authenticated and has successfully updated the email using the correct code.  
+Steps:  
+- Submit the same verification code again, if the UI or API allows.  
+- Check account email.  
+Expected Result: Account state remains consistent and is not incorrectly changed by duplicate submission.  
+Severity if Failed: High  
+Notes: Post-success code reuse rules need clarification.
+
+7.  
+ID: TC-EDGE-007  
+Title: Same email address as current account email  
+Priority: Medium  
+Type: Edge  
+Preconditions: User is authenticated and knows the current account email.  
+Steps:  
+- Enter the current account email as the new email.  
+- Submit the request.  
+Expected Result: System handles the same-email submission according to product rules and does not create an inconsistent account state.  
+Severity if Failed: Medium  
+Notes: Same-email behavior needs clarification.
+
+8.  
+ID: TC-EDGE-008  
+Title: New email address already used by another account  
+Priority: High  
+Type: Edge  
+Preconditions: User is authenticated and an email already associated with another account exists.  
+Steps:  
+- Enter the email address already associated with another account.  
+- Submit the request.  
+Expected Result: System handles the duplicate email according to product rules and does not update the account incorrectly.  
+Severity if Failed: Critical  
+Notes: Uniqueness rules need clarification.
+
+### Security Test Cases
+
+1.  
+ID: TC-SEC-001  
+Title: Unauthenticated user cannot access email-change flow  
+Priority: High  
+Type: Security  
+Preconditions: User is not authenticated.  
+Steps:  
+- Attempt to access the email-change flow.  
+Expected Result: Unauthenticated user cannot change an account email.  
+Severity if Failed: Critical  
+Notes: Authentication is required by the user story.
+
+2.  
+ID: TC-SEC-002  
+Title: Email is not updated without verification code  
+Priority: High  
+Type: Security  
+Preconditions: User is authenticated.  
+Steps:  
+- Submit a valid new email address.  
+- Attempt to complete or bypass the flow without entering a code.  
+- Check account email.  
+Expected Result: Account email remains unchanged without the correct verification code.  
+Severity if Failed: Critical  
+Notes: Core security requirement.
+
+3.  
+ID: TC-SEC-003  
+Title: Email is not updated with code for another pending request  
+Priority: High  
+Type: Security  
+Preconditions: User is authenticated and multiple pending email-change attempts can be created.  
+Steps:  
+- Submit one valid new email address.  
+- Submit a second valid new email address.  
+- Attempt verification using the code from the non-active or unrelated request.  
+Expected Result: Account email is not updated unless the correct code for the intended active request is entered.  
+Severity if Failed: Critical  
+Notes: Multiple-code behavior needs clarification.
+
+4.  
+ID: TC-SEC-004  
+Title: Verification code cannot be reused after successful email update  
+Priority: High  
+Type: Security  
+Preconditions: User has completed an email change using a valid code.  
+Steps:  
+- Attempt to reuse the same code for another submission.  
+Expected Result: Reuse does not cause unauthorized or duplicate email changes; account state remains consistent.  
+Severity if Failed: High  
+Notes: Code reuse rules need clarification.
+
+5.  
+ID: TC-SEC-005  
+Title: Rate limiting or abuse prevention for repeated code submissions  
+Priority: Medium  
+Type: Security  
+Preconditions: User is authenticated and has a pending email-change request.  
+Steps:  
+- Submit repeated incorrect verification codes.  
+Expected Result: System handles repeated attempts according to defined abuse-prevention rules and never updates the email without the correct code.  
+Severity if Failed: High  
+Notes: Rate limiting and lockout rules need clarification.
+
+## Exploratory Testing Charters
+
+1. Explore email format validation using a broad set of valid-looking and invalid-looking emails to identify gaps between expected and actual validation.
+2. Explore state transitions across email submission, verification pending, successful verification, failed verification, refresh, navigation, and re-login.
+3. Explore duplicate and rapid submissions for both new email entry and verification code entry.
+4. Explore behavior when multiple email-change requests are initiated before any verification is completed.
+5. Explore session changes during the flow, including logout, session expiry, and login from another session if applicable.
+6. Explore security bypass attempts where email update is attempted before or without correct code verification.
+7. Explore verification email content and destination to confirm the code is sent to the new email address only.
+
+## Coverage Gaps
+
+- Exact email validation specification is missing.
+- Verification code length, format, expiration, retry, and reuse rules are missing.
+- Resend-code behavior is not defined.
+- Duplicate pending-request behavior is not defined.
+- Current-email and already-used-email behavior is not defined.
+- Session-expiry behavior is not defined.
+- Error-message requirements are not defined.
+- Rate limiting and lockout requirements are not defined.
+- Audit/logging requirements are not defined.
+- Notification requirements to old or new email are not defined.
+- Code delivery failure behavior is not defined.
+
+## Recommendation
+
+Proceed with testing the core acceptance criteria first: valid email entry, email-format validation, code delivery to the new email, and update only after correct code entry. Before final sign-off, clarify validation rules, code lifecycle rules, duplicate-request behavior, session-expiry behavior, and security controls because these directly affect test completeness and account-security risk.
+
+JSON_EXPORT_START
+{
+  "test_objective": "Verify that an authenticated user can change their email address only after entering a valid new email address and successfully verifying it with the correct one-time code.",
+  "scope": [
+    "Authenticated user enters a new email address.",
+    "System validates email format.",
+    "System sends a verification code to the new email address.",
+    "System updates email only after the correct code is entered.",
+    "Invalid, empty, malformed, boundary, duplicate, retry, navigation, refresh, session-expiry, authorization, and state-consistency checks where relevant."
+  ],
+  "assumptions": [],
+  "risks": [
+    "Email may be updated before verification.",
+    "Invalid or malformed email addresses may pass validation.",
+    "Verification code may be sent to the wrong address.",
+    "Incorrect code entry may still update the email.",
+    "Duplicate submissions may create inconsistent state.",
+    "Refresh, navigation, or session expiry may leave pending state unclear.",
+    "Unauthorized users may access or abuse the email-change flow.",
+    "Missing code expiry, retry, resend, and rate-limit rules may cause inconsistent implementation and testing ambiguity."
+  ],
+  "clarifications_needed": [
+    "What exact email validation rules should be used?",
+    "Are internationalized email addresses supported?",
+    "Are plus-addressing, subdomains, uppercase characters, and long TLDs allowed?",
+    "What are the minimum and maximum allowed email lengths?",
+    "Can the new email be the same as the current email?",
+    "Can the new email already belong to another account?",
+    "How long is the one-time code valid?",
+    "What is the required code format and length?",
+    "What happens after multiple incorrect code attempts?",
+    "Is there a resend verification code option?",
+    "If multiple codes are requested, are previous codes invalidated?",
+    "What should happen if the user refreshes or navigates away during verification?",
+    "What should happen if the session expires during the flow?",
+    "Should the old email receive a notification?",
+    "Should the new email receive confirmation after successful update?",
+    "Are there rate limits for email-change requests or code submissions?",
+    "Should audit logs be created for email-change attempts and successful updates?",
+    "What exact error messages should be displayed?",
+    "Should email comparison be case-sensitive or normalized?",
+    "What should happen if sending the verification code fails?"
+  ],
+  "test_cases": [
+    {
+      "ID": "TC-POS-001",
+      "Title": "Change email with valid new email and correct verification code",
+      "Priority": "High",
+      "Type": "Positive",
+      "Preconditions": "User is authenticated and has access to the email-change flow.",
+      "Steps": [
+        "Enter a valid new email address.",
+        "Submit the email-change request.",
+        "Retrieve the verification code from the new email address.",
+        "Enter the correct verification code.",
+        "Submit verification."
+      ],
+      "Expected Result": "Verification code is sent to the new email address, and the account email is updated only after the correct code is submitted.",
+      "Severity if Failed": "Critical",
+      "Notes": "Covers primary acceptance criteria."
+    },
+    {
+      "ID": "TC-POS-002",
+      "Title": "Verification code is sent to the entered new email address",
+      "Priority": "High",
+      "Type": "Positive",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter a valid new email address.",
+        "Submit the email-change request.",
+        "Check the inbox for the new email address."
+      ],
+      "Expected Result": "Verification code is delivered to the new email address.",
+      "Severity if Failed": "High",
+      "Notes": "Delivery timing is not specified."
+    },
+    {
+      "ID": "TC-POS-003",
+      "Title": "Email remains unchanged after valid email submission but before code verification",
+      "Priority": "High",
+      "Type": "Positive",
+      "Preconditions": "User is authenticated and has an existing account email.",
+      "Steps": [
+        "Enter a valid new email address.",
+        "Submit the email-change request.",
+        "Do not enter the verification code.",
+        "Check the current account email value."
+      ],
+      "Expected Result": "Account email remains unchanged until the correct verification code is entered.",
+      "Severity if Failed": "Critical",
+      "Notes": "Validates secure state transition."
+    },
+    {
+      "ID": "TC-POS-004",
+      "Title": "Email format accepted for common valid email structure",
+      "Priority": "Medium",
+      "Type": "Positive",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter an email address using a common valid structure, such as local-part, @ symbol, domain, and TLD.",
+        "Submit the email-change request."
+      ],
+      "Expected Result": "System accepts the valid email format and proceeds to send a verification code.",
+      "Severity if Failed": "High",
+      "Notes": "Exact validation rules need clarification."
+    },
+    {
+      "ID": "TC-POS-005",
+      "Title": "Correct verification code updates only to the requested new email",
+      "Priority": "High",
+      "Type": "Positive",
+      "Preconditions": "User is authenticated and has requested an email change.",
+      "Steps": [
+        "Submit a valid new email address.",
+        "Receive the verification code.",
+        "Enter the correct verification code.",
+        "Confirm the updated account email."
+      ],
+      "Expected Result": "Account email is updated to the same new email address used for the verification request.",
+      "Severity if Failed": "Critical",
+      "Notes": "Prevents mismatch between requested and updated email."
+    },
+    {
+      "ID": "TC-NEG-001",
+      "Title": "Empty email address is rejected",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Leave the new email field empty.",
+        "Submit the email-change request."
+      ],
+      "Expected Result": "System rejects the request, does not send a verification code, and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Error message is not specified."
+    },
+    {
+      "ID": "TC-NEG-002",
+      "Title": "Malformed email without @ symbol is rejected",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter a malformed email address without an @ symbol.",
+        "Submit the request."
+      ],
+      "Expected Result": "System rejects the email format, does not send a verification code, and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Covers basic malformed input."
+    },
+    {
+      "ID": "TC-NEG-003",
+      "Title": "Malformed email without domain is rejected",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter an email address missing the domain portion.",
+        "Submit the request."
+      ],
+      "Expected Result": "System rejects the email format, does not send a verification code, and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Exact validation rules need clarification."
+    },
+    {
+      "ID": "TC-NEG-004",
+      "Title": "Malformed email without local part is rejected",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter an email address missing the local part before @.",
+        "Submit the request."
+      ],
+      "Expected Result": "System rejects the email format, does not send a verification code, and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Exact validation rules need clarification."
+    },
+    {
+      "ID": "TC-NEG-005",
+      "Title": "Incorrect verification code does not update email",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated and has requested an email change with a valid new email.",
+      "Steps": [
+        "Enter an incorrect verification code.",
+        "Submit verification.",
+        "Check the account email."
+      ],
+      "Expected Result": "System rejects the incorrect code and keeps the original account email unchanged.",
+      "Severity if Failed": "Critical",
+      "Notes": "Retry behavior needs clarification."
+    },
+    {
+      "ID": "TC-NEG-006",
+      "Title": "Empty verification code is rejected",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated and has requested an email change.",
+      "Steps": [
+        "Leave the verification code field empty.",
+        "Submit verification."
+      ],
+      "Expected Result": "System rejects the empty code and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Code format is not specified."
+    },
+    {
+      "ID": "TC-NEG-007",
+      "Title": "Malformed verification code is rejected",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated and has requested an email change.",
+      "Steps": [
+        "Enter a verification code that does not match the required code format.",
+        "Submit verification."
+      ],
+      "Expected Result": "System rejects the malformed code and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Required code format needs clarification."
+    },
+    {
+      "ID": "TC-NEG-008",
+      "Title": "Duplicate email-change submission does not update email prematurely",
+      "Priority": "Medium",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter a valid new email address.",
+        "Submit the request multiple times quickly.",
+        "Do not enter any verification code.",
+        "Check account email."
+      ],
+      "Expected Result": "Account email remains unchanged until correct verification code entry.",
+      "Severity if Failed": "High",
+      "Notes": "Expected code-generation behavior for duplicates needs clarification."
+    },
+    {
+      "ID": "TC-NEG-009",
+      "Title": "Verification code sending failure does not update account email",
+      "Priority": "High",
+      "Type": "Negative",
+      "Preconditions": "User is authenticated and verification email sending can be simulated as failed.",
+      "Steps": [
+        "Enter a valid new email address.",
+        "Submit the request while code delivery fails.",
+        "Check account email."
+      ],
+      "Expected Result": "Account email is not updated if the verification code is not successfully sent.",
+      "Severity if Failed": "Critical",
+      "Notes": "Failure handling needs clarification."
+    },
+    {
+      "ID": "TC-BND-001",
+      "Title": "Minimum valid email length is handled according to validation rules",
+      "Priority": "Medium",
+      "Type": "Boundary",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter an email address at the minimum valid length allowed by the system.",
+        "Submit the request."
+      ],
+      "Expected Result": "System handles the boundary value according to defined email validation rules and does not update email before verification.",
+      "Severity if Failed": "Medium",
+      "Notes": "Minimum length rule needs clarification."
+    },
+    {
+      "ID": "TC-BND-002",
+      "Title": "Maximum valid email length is handled according to validation rules",
+      "Priority": "Medium",
+      "Type": "Boundary",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter an email address at the maximum valid length allowed by the system.",
+        "Submit the request."
+      ],
+      "Expected Result": "System handles the boundary value according to defined email validation rules and does not update email before verification.",
+      "Severity if Failed": "Medium",
+      "Notes": "Maximum length rule needs clarification."
+    },
+    {
+      "ID": "TC-BND-003",
+      "Title": "Email exceeding maximum allowed length is rejected",
+      "Priority": "Medium",
+      "Type": "Boundary",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Enter an email address longer than the maximum allowed length.",
+        "Submit the request."
+      ],
+      "Expected Result": "System rejects the email, does not send a verification code, and does not update the account email.",
+      "Severity if Failed": "Medium",
+      "Notes": "Maximum length rule needs clarification."
+    },
+    {
+      "ID": "TC-BND-004",
+      "Title": "Verification code length boundary is handled according to code rules",
+      "Priority": "Medium",
+      "Type": "Boundary",
+      "Preconditions": "User is authenticated and has requested an email change.",
+      "Steps": [
+        "Enter a code shorter than the required length.",
+        "Submit verification.",
+        "Enter a code longer than the required length.",
+        "Submit verification."
+      ],
+      "Expected Result": "System rejects codes that do not match the required code length and does not update the account email.",
+      "Severity if Failed": "High",
+      "Notes": "Code length needs clarification."
+    },
+    {
+      "ID": "TC-BND-005",
+      "Title": "Verification code retry limit boundary is handled consistently",
+      "Priority": "Medium",
+      "Type": "Boundary",
+      "Preconditions": "User is authenticated and has requested an email change.",
+      "Steps": [
+        "Enter incorrect verification codes up to the configured retry limit.",
+        "Attempt one additional incorrect submission."
+      ],
+      "Expected Result": "System behaves according to the configured retry-limit rules and does not update the account email without the correct code.",
+      "Severity if Failed": "High",
+      "Notes": "Retry limit needs clarification."
+    },
+    {
+      "ID": "TC-EDGE-001",
+      "Title": "Refresh page after email submission before verification",
+      "Priority": "Medium",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and has submitted a valid new email address.",
+      "Steps": [
+        "Refresh the page before entering the verification code.",
+        "Continue or revisit the verification flow as supported.",
+        "Check the account email."
+      ],
+      "Expected Result": "Account email remains unchanged until the correct verification code is entered.",
+      "Severity if Failed": "High",
+      "Notes": "Expected pending-state behavior after refresh needs clarification."
+    },
+    {
+      "ID": "TC-EDGE-002",
+      "Title": "Navigate away after email submission before verification",
+      "Priority": "Medium",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and has submitted a valid new email address.",
+      "Steps": [
+        "Navigate away from the verification step before entering the code.",
+        "Return to the email-change flow.",
+        "Check account email."
+      ],
+      "Expected Result": "Account email remains unchanged until the correct verification code is entered.",
+      "Severity if Failed": "High",
+      "Notes": "Expected pending-state behavior after navigation needs clarification."
+    },
+    {
+      "ID": "TC-EDGE-003",
+      "Title": "Session expires before verification code is submitted",
+      "Priority": "High",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and has submitted a valid new email address.",
+      "Steps": [
+        "Allow or simulate session expiry before entering the verification code.",
+        "Attempt to submit the code.",
+        "Check account email."
+      ],
+      "Expected Result": "System does not update the email unless the user is authenticated and the correct code is accepted according to session rules.",
+      "Severity if Failed": "Critical",
+      "Notes": "Session-expiry behavior needs clarification."
+    },
+    {
+      "ID": "TC-EDGE-004",
+      "Title": "Retry with correct code after an incorrect code attempt",
+      "Priority": "High",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and has requested an email change.",
+      "Steps": [
+        "Enter an incorrect verification code.",
+        "Submit verification.",
+        "Enter the correct verification code.",
+        "Submit verification."
+      ],
+      "Expected Result": "Email remains unchanged after the incorrect code; subsequent behavior follows retry rules, and email updates only if the correct code is accepted.",
+      "Severity if Failed": "High",
+      "Notes": "Retry rules need clarification."
+    },
+    {
+      "ID": "TC-EDGE-005",
+      "Title": "Submit two different new email addresses before verification",
+      "Priority": "High",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Submit a valid first new email address.",
+        "Before verifying, submit a different valid new email address.",
+        "Use the verification code from the first email, if available.",
+        "Check account email."
+      ],
+      "Expected Result": "Email is not updated unless the correct code for the active pending email-change request is entered.",
+      "Severity if Failed": "Critical",
+      "Notes": "Multiple pending-request behavior needs clarification."
+    },
+    {
+      "ID": "TC-EDGE-006",
+      "Title": "Duplicate verification-code submission after successful update",
+      "Priority": "Medium",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and has successfully updated the email using the correct code.",
+      "Steps": [
+        "Submit the same verification code again, if the UI or API allows.",
+        "Check account email."
+      ],
+      "Expected Result": "Account state remains consistent and is not incorrectly changed by duplicate submission.",
+      "Severity if Failed": "High",
+      "Notes": "Post-success code reuse rules need clarification."
+    },
+    {
+      "ID": "TC-EDGE-007",
+      "Title": "Same email address as current account email",
+      "Priority": "Medium",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and knows the current account email.",
+      "Steps": [
+        "Enter the current account email as the new email.",
+        "Submit the request."
+      ],
+      "Expected Result": "System handles the same-email submission according to product rules and does not create an inconsistent account state.",
+      "Severity if Failed": "Medium",
+      "Notes": "Same-email behavior needs clarification."
+    },
+    {
+      "ID": "TC-EDGE-008",
+      "Title": "New email address already used by another account",
+      "Priority": "High",
+      "Type": "Edge",
+      "Preconditions": "User is authenticated and an email already associated with another account exists.",
+      "Steps": [
+        "Enter the email address already associated with another account.",
+        "Submit the request."
+      ],
+      "Expected Result": "System handles the duplicate email according to product rules and does not update the account incorrectly.",
+      "Severity if Failed": "Critical",
+      "Notes": "Uniqueness rules need clarification."
+    },
+    {
+      "ID": "TC-SEC-001",
+      "Title": "Unauthenticated user cannot access email-change flow",
+      "Priority": "High",
+      "Type": "Security",
+      "Preconditions": "User is not authenticated.",
+      "Steps": [
+        "Attempt to access the email-change flow."
+      ],
+      "Expected Result": "Unauthenticated user cannot change an account email.",
+      "Severity if Failed": "Critical",
+      "Notes": "Authentication is required by the user story."
+    },
+    {
+      "ID": "TC-SEC-002",
+      "Title": "Email is not updated without verification code",
+      "Priority": "High",
+      "Type": "Security",
+      "Preconditions": "User is authenticated.",
+      "Steps": [
+        "Submit a valid new email address.",
+        "Attempt to complete or bypass the flow without entering a code.",
+        "Check account email."
+      ],
+      "Expected Result": "Account email remains unchanged without the correct verification code.",
+      "Severity if Failed": "Critical",
+      "Notes": "Core security requirement."
+    },
+    {
+      "ID": "TC-SEC-003",
+      "Title": "Email is not updated with code for another pending request",
+      "Priority": "High",
+      "Type": "Security",
+      "Preconditions": "User is authenticated and multiple pending email-change attempts can be created.",
+      "Steps": [
+        "Submit one valid new email address.",
+        "Submit a second valid new email address.",
+        "Attempt verification using the code from the non-active or unrelated request."
+      ],
+      "Expected Result": "Account email is not updated unless the correct code for the intended active request is entered.",
+      "Severity if Failed": "Critical",
+      "Notes": "Multiple-code behavior needs clarification."
+    },
+    {
+      "ID": "TC-SEC-004",
+      "Title": "Verification code cannot be reused after successful email update",
+      "Priority": "High",
+      "Type": "Security",
+      "Preconditions": "User has completed an email change using a valid code.",
+      "Steps": [
+        "Attempt to reuse the same code for another submission."
+      ],
+      "Expected Result": "Reuse does not cause unauthorized or duplicate email changes; account state remains consistent.",
+      "Severity if Failed": "High",
+      "Notes": "Code reuse rules need clarification."
+    },
+    {
+      "ID": "TC-SEC-005",
+      "Title": "Rate limiting or abuse prevention for repeated code submissions",
+      "Priority": "Medium",
+      "Type": "Security",
+      "Preconditions": "User is authenticated and has a pending email-change request.",
+      "Steps": [
+        "Submit repeated incorrect verification codes."
+      ],
+      "Expected Result": "System handles repeated attempts according to defined abuse-prevention rules and never updates the email without the correct code.",
+      "Severity if Failed": "High",
+      "Notes": "Rate limiting and lockout rules need clarification."
+    }
+  ],
+  "exploratory_charters": [
+    "Explore email format validation using a broad set of valid-looking and invalid-looking emails to identify gaps between expected and actual validation.",
+    "Explore state transitions across email submission, verification pending, successful verification, failed verification, refresh, navigation, and re-login.",
+    "Explore duplicate and rapid submissions for both new email entry and verification code entry.",
+    "Explore behavior when multiple email-change requests are initiated before any verification is completed.",
+    "Explore session changes during the flow, including logout, session expiry, and login from another session if applicable.",
+    "Explore security bypass attempts where email update is attempted before or without correct code verification.",
+    "Explore verification email content and destination to confirm the code is sent to the new email address only."
+  ],
+  "coverage_gaps": [
+    "Exact email validation specification is missing.",
+    "Verification code length, format, expiration, retry, and reuse rules are missing.",
+    "Resend-code behavior is not defined.",
+    "Duplicate pending-request behavior is not defined.",
+    "Current-email and already-used-email behavior is not defined.",
+    "Session-expiry behavior is not defined.",
+    "Error-message requirements are not defined.",
+    "Rate limiting and lockout requirements are not defined.",
+    "Audit/logging requirements are not defined.",
+    "Notification requirements to old or new email are not defined.",
+    "Code delivery failure behavior is not defined."
+  ],
+  "recommendation": "Proceed with testing the core acceptance criteria first: valid email entry, email-format validation, code delivery to the new email, and update only after correct code entry. Before final sign-off, clarify validation rules, code lifecycle rules, duplicate-request behavior, session-expiry behavior, and security controls because these directly affect test completeness and account-security risk."
+}
+JSON_EXPORT_END
